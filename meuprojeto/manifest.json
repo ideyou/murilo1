@@ -1,0 +1,19 @@
+{
+  "id": "MURILOHUB",
+  "name": "Murilo's HUB",
+  "short_name": "Murilo's HUB",
+  "scope": "./",
+  "start_url": "./",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#4b92db",
+  "icons": [
+    {
+      "src": "profile.avif",
+      "sizes": "any",
+      "type": "image/avif"
+    }
+  ],
+  "app_name": "Murilo's HUB",
+  "description": "Meu primeiro projeto Web."
+}

@@ -1,0 +1,106 @@
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Corpo */
+body {
+  font-family: Arial, sans-serif;
+  background-color: rgb(12, 160, 170);
+  background-image: url(windows-xp-1920x1080-17062.jpg);
+  background-position: 10% down;
+}
+
+/* Container estilo Bootstrap */
+.container {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 20px;
+}
+
+/* Centralização */
+.text-center {
+  text-align: center;
+}
+
+/* Avatar */
+.avatar {
+  width: 120px;
+  border-radius: 50%;
+  margin-bottom: 15px;
+}
+
+/* Títulos */
+.title {
+  font-size: 24px;
+  margin-bottom: 5px;
+}
+
+.subtitle {
+  font-size: 14px;
+  margin-bottom: 20px;
+  color: #1c5c16;
+}
+
+/* Links */
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+/* Botões estilo Bootstrap */
+.btn {
+  display: block;
+  padding: 10px;
+  text-decoration: none;
+  border-radius: 5px;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+/* Variantes */
+.btn-primary {
+  background-color: #1100ff;
+  color: white;
+}
+
+.btn-secondary {
+  background-color: #f30505;
+  color: white;
+}
+
+.btn-dark {
+  background-color: #1b4547;
+  color: white;
+}
+
+.btn-RockiBalboa {
+  background-color: #0024f3;
+  color: white;
+}
+
+.btn-outline {
+  border: 1px solid #333;
+  background: transparent;
+}
+
+/* Hover */
+.btn:hover {
+  opacity: 0.8;
+}
+
+/* Tema escuro */
+.dark-mode {
+  background-color: #121212;
+  color: #f1f1f1;
+background-image: url(moonrise-rolling-1920x1080-25877.jpg);
+}
+
+.dark-mode .btn-outline {
+  color: #ffffff;
+  border-color: #f1f1f1;
+}
