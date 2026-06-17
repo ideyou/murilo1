@@ -3,3 +3,6 @@ function saudacao(nome) {
 }
 
 alert (saudacao("Maria"));
+      //variaveis
+      let nome 
+      

@@ -1,0 +1,642 @@
+20260528 22:06:00 || <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avião Retro</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    font-family:Arial;
+    background:black;
+    touch-action: none;
+}
+
+canvas{
+    display:block;
+}
+
+#texto, #level, #vida {
+    position:absolute;
+    left:10px;
+    color:white;
+    z-index:2;
+    font-weight:bold;
+}
+
+#texto{
+    top:10px;
+    font-size:24px;
+}
+
+#level{
+    top:45px;
+    font-size:22px;
+}
+
+#vida{
+    top:80px;
+    font-size:22px;
+    color: #ff4444;
+}
+
+/* CAPA */
+#capa{
+    position:absolute;
+    width:100%;
+    height:100%;
+    background:linear-gradient(#111827,#000);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    color:white;
+    z-index:5;
+    text-align:center;
+}
+
+#capa h1{
+    font-size:60px;
+    text-shadow:0 0 20px cyan;
+    margin-bottom:10px;
+}
+
+#capa h2{
+    color:cyan;
+}
+
+#capa p{
+    font-size:20px;
+    line-height:1.7;
+}
+
+#capa button, #gameOver button, #vitoria button{
+    padding:15px 40px;
+    font-size:24px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    transition:0.3s;
+    margin:10px;
+}
+
+#capa button{ background:cyan; }
+#gameOver button{ background:orange; }
+#vitoria button{ background:limegreen; }
+
+#capa button:hover, #gameOver button:hover, #vitoria button:hover{
+    transform:scale(1.1);
+}
+
+/* TELAS DE FIM */
+#gameOver, #vitoria{
+    position:absolute;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.8);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    flex-direction:column;
+    color:white;
+    z-index:10;
+}
+
+#gameOver h1{ color:rgb(217, 255, 0); font-size:70px; }
+#vitoria h1{ color:limegreen; font-size:60px; }
+#vitoria p{ font-size:26px; margin-top:10px; }
+
+/* BOTÕES MOBILE */
+#controlesMobile{
+    position:absolute;
+    bottom:20px;
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    padding:0 20px;
+    box-sizing:border-box;
+    z-index:3;
+}
+
+#controlesMobile button{
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    border:none;
+    background:rgba(255,255,255,0.3);
+    color:white;
+    font-size:24px;
+    touch-action:none;
+}
+
+@media (min-width: 769px){
+    #controlesMobile{ display:none; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- CAPA -->
+<div id="capa">
+    <h1>✈ AVIÃO RETRO ✈</h1>
+    <h2>Bem-vindo ao meu primeiro jogo!</h2>
+    <p>
+        ↑ ↓ ← → mover | ESPAÇO = atirar<br>
+        X = Tiro Especial 💥<br>
+        💚 Vida | 🌅 Dia/Noite | ☁ Nuvens
+    </p>
+    <button onclick="iniciarJogo()">COMEÇAR</button>
+</div>
+
+<!-- TELAS FIM -->
+<div id="gameOver">
+    <h1>GAME OVER</h1>
+    <button onclick="reiniciarJogo()">JOGAR NOVAMENTE</button>
+</div>
+
+<div id="vitoria">
+    <h1>🏆 VOCÊ VENCEU! 🏆</h1>
+    <p>Você chegou ao final do jogo!</p>
+    <button onclick="reiniciarJogo()">JOGAR NOVAMENTE</button>
+</div>
+
+<!-- CONTROLES MOBILE -->
+<div id="controlesMobile">
+    <div>
+        <button id="btnEsquerda">←</button>
+        <div>
+            <button id="btnCima">↑</button>
+            <button id="btnBaixo">↓</button>
+        </div>
+        <button id="btnDireita">→</button>
+    </div>
+    <div>
+        <button id="btnTiro">🔫</button>
+        <button id="btnEspecial">💥</button>
+    </div>
+</div>
+
+<!-- HUD -->
+<div id="texto">Pontos: 0</div>
+<div id="level">Level: 1</div>
+<div id="vida">Vida: ❤️❤️❤️</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// VARIÁVEIS GERAIS
+let pontos = 0;
+let level = 1;
+let jogoIniciado = false;
+let vida = 3;
+let tempoDia = 0;
+let pontuacaoMaxima = 200;
+
+// OBJETOS DO JOGO
+let boss = null;
+let bossVida = 20; // Vida do chefão
+let tirosBoss = []; // Tiros disparados pelo chefão
+let tempoTiroBoss = 0; // Controle de tempo dos tiros do chefão
+let estrelas = [];
+let nuvens = [];
+let explosoes = [];
+let tiros = [];
+let inimigos = [];
+
+// CONTROLES
+const teclas = {};
+
+// ==============================================
+// CRIAÇÃO DE ELEMENTOS CENÁRIO
+// ==============================================
+for(let i = 0; i < 150; i++){
+    estrelas.push({
+        x:Math.random() * canvas.width,
+        y:Math.random() * canvas.height,
+        tamanho:Math.random() * 3,
+        brilho: Math.random()
+    });
+}
+
+for(let i = 0; i < 8; i++){
+    nuvens.push({
+        x:Math.random() * canvas.width,
+        y:Math.random() * canvas.height/1.5,
+        largura: 100 + Math.random()*150,
+        altura: 60 + Math.random()*80,
+        velocidade: 0.2 + Math.random()*0.5
+    });
+}
+
+// ==============================================
+// AVIÃO PRINCIPAL
+// ==============================================
+const aviao = {
+    x:100,
+    y:300,
+    largura:70,
+    altura:45,
+    velocidade:8
+};
+
+// ==============================================
+// FUNÇÕES DE INICIALIZAÇÃO
+// ==============================================
+function iniciarJogo(){
+    document.getElementById("capa").style.display = "none";
+    document.getElementById("gameOver").style.display = "none";
+    document.getElementById("vitoria").style.display = "none";
+    
+    pontos = 0;
+    level = 1;
+    vida = 3;
+    
+    tiros = [];
+    tirosBoss = [];
+    inimigos = [];
+    explosoes = [];
+    
+    boss = null;
+    bossVida = 20;
+    tempoTiroBoss = 0;
+    
+    jogoIniciado = true;
+    atualizarTexto();
+}
+
+function reiniciarJogo(){ iniciarJogo(); }
+
+function atualizarTexto(){
+    document.getElementById("texto").innerText = "Pontos: " + pontos;
+    document.getElementById("level").innerText = "Level: " + level;
+    document.getElementById("vida").innerText = "Vida: " + "❤️".repeat(vida);
+}
+
+// ==============================================
+// CONTROLES TECLADO E MOBILE
+// ==============================================
+document.addEventListener("keydown", e => {
+    teclas[e.key] = true;
+    if(e.key === " " && jogoIniciado) { atirar(); }
+    if(e.key.toLowerCase() === "x" && jogoIniciado) { tiroEspecial(); }
+});
+document.addEventListener("keyup", e => teclas[e.key] = false);
+
+// Controles Mobile
+document.getElementById("btnEsquerda").addEventListener("touchstart", () => teclas["ArrowLeft"] = true);
+document.getElementById("btnEsquerda").addEventListener("touchend", () => teclas["ArrowLeft"] = false);
+document.getElementById("btnDireita").addEventListener("touchstart", () => teclas["ArrowRight"] = true);
+document.getElementById("btnDireita").addEventListener("touchend", () => teclas["ArrowRight"] = false);
+document.getElementById("btnCima").addEventListener("touchstart", () => teclas["ArrowUp"] = true);
+document.getElementById("btnCima").addEventListener("touchend", () => teclas["ArrowUp"] = false);
+document.getElementById("btnBaixo").addEventListener("touchstart", () => teclas["ArrowDown"] = true);
+document.getElementById("btnBaixo").addEventListener("touchend", () => teclas["ArrowDown"] = false);
+document.getElementById("btnTiro").addEventListener("touchstart", atirar);
+document.getElementById("btnEspecial").addEventListener("touchstart", tiroEspecial);
+
+// ==============================================
+// SISTEMA DE CENÁRIO DIA/NOITE
+// ==============================================
+function desenharCeu(){
+    tempoDia += 0.0015;
+    if(tempoDia >= 1) tempoDia = 0;
+
+    if(tempoDia < 0.5){
+        ctx.fillStyle = "#60a5fa";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.beginPath(); ctx.fillStyle = "#facc15";
+        ctx.arc(canvas.width - 120, 100, 50, 0, Math.PI*2); ctx.fill();
+    } else {
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.beginPath(); ctx.fillStyle = "#cbd5e1";
+        ctx.arc(canvas.width - 120, 100, 40, 0, Math.PI*2); ctx.fill();
+    }
+}
+
+function desenharEstrelas(){
+    if(tempoDia >= 0.3){
+        ctx.fillStyle = "white";
+        estrelas.forEach(estrela => {
+            estrela.x -= 0.3;
+            if(estrela.x < 0) { estrela.x = canvas.width; estrela.y = Math.random() * canvas.height; }
+            ctx.globalAlpha = 0.5 + Math.sin(estrela.brilho + tempoDia*10)/2;
+            ctx.fillRect(estrela.x, estrela.y, estrela.tamanho, estrela.tamanho);
+        });
+        ctx.globalAlpha = 1;
+    }
+}
+
+function desenharNuvens(){
+    ctx.fillStyle = "white";
+    ctx.globalAlpha = 0.7;
+    nuvens.forEach(nuvem => {
+        nuvem.x -= nuvem.velocidade;
+        if(nuvem.x < -nuvem.largura) { nuvem.x = canvas.width; nuvem.y = Math.random() * canvas.height/1.5; }
+        
+        ctx.beginPath();
+        ctx.ellipse(nuvem.x, nuvem.y, nuvem.largura/2, nuvem.altura/2, 0, 0, Math.PI*2);
+        ctx.ellipse(nuvem.x + 30, nuvem.y - 10, nuvem.largura/2.2, nuvem.altura/2.2, 0, 0, Math.PI*2);
+        ctx.ellipse(nuvem.x - 20, nuvem.y + 5, nuvem.largura/2.5, nuvem.altura/2.5, 0, 0, Math.PI*2);
+        ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+}
+
+// ==============================================
+// DESENHO DOS OBJETOS
+// ==============================================
+function desenharAviao(){
+    ctx.fillStyle = "#00ccff";
+    ctx.fillRect(aviao.x + 10, aviao.y + 5, 45, 18);
+    ctx.fillRect(aviao.x + 20, aviao.y - 8, 12, 30);
+    ctx.fillRect(aviao.x + 20, aviao.y + 15, 12, 30);
+    ctx.fillRect(aviao.x, aviao.y + 2, 12, 12);
+    ctx.beginPath();
+    ctx.moveTo(aviao.x + 55, aviao.y + 14);
+    ctx.lineTo(aviao.x + 70, aviao.y + 7);
+    ctx.lineTo(aviao.x + 70, aviao.y + 21);
+    ctx.fillStyle = "#0099dd";
+    ctx.fill();
+}
+
+function desenharInimigo(inimigo){
+    ctx.fillStyle = "#dc2626";
+    ctx.fillRect(inimigo.x + 5, inimigo.y + 5, inimigo.largura - 10, inimigo.altura - 10);
+    ctx.fillRect(inimigo.x + 15, inimigo.y - 10, 8, 20);
+    ctx.fillRect(inimigo.x + 15, inimigo.y + inimigo.altura, 8, 20);
+    ctx.fillStyle = "#990000";
+    ctx.fillRect(inimigo.x + 25, inimigo.y + 12, 15, 8);
+}
+
+function desenharExplosoes(){
+    explosoes.forEach((exp, i) => {
+        exp.tempo--;
+        ctx.globalAlpha = exp.tempo / 30;
+        ctx.fillStyle = exp.cor;
+        ctx.beginPath();
+        ctx.arc(exp.x, exp.y, exp.tamanho * (1 - exp.tempo/30), 0, Math.PI*2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        if(exp.tempo <= 0) explosoes.splice(i,1);
+    });
+}
+
+// ==============================================
+// SISTEMA DE TIROS E ATAQUES
+// ==============================================
+function atirar(){
+    tiros.push({
+        x:aviao.x + 70,
+        y:aviao.y + 18,
+        largura:20,
+        altura:6,
+        especial: false
+    });
+}
+
+function tiroEspecial(){
+    for(let i=0; i<8; i++){
+        tiros.push({
+            x:aviao.x + 70,
+            y:aviao.y + 18 + (i*10 - 35),
+            largura:30,
+            altura:8,
+            especial: true
+        });
+    }
+}
+
+function desenharTiros(){
+    tiros.forEach((tiro, i) => {
+        tiro.x += tiro.especial ? 14 : 10;
+        ctx.fillStyle = tiro.especial ? "#ffcc00" : "#ffff00";
+        ctx.fillRect(tiro.x, tiro.y, tiro.largura, tiro.altura);
+        if(tiro.x > canvas.width) tiros.splice(i,1);
+    });
+    
+    // Desenha e move tiros do chefão
+    tirosBoss.forEach((tiro, i) => {
+        tiro.x -= 8;
+        ctx.fillStyle = "#ff0000";
+        ctx.fillRect(tiro.x, tiro.y, tiro.largura, tiro.altura);
+        
+        // Verifica colisão com o avião
+        if(verificarColisao(tiro, aviao)){
+            tirosBoss.splice(i,1);
+            vida--;
+            explosoes.push({x:aviao.x, y:aviao.y, tamanho:40, tempo:30, cor:"red"});
+            atualizarTexto();
+            if(vida <= 0) fimDeJogo();
+        }
+        
+        if(tiro.x < -tiro.largura) tirosBoss.splice(i,1);
+    });
+}
+
+// ==============================================
+// SISTEMA DE INIMIGOS
+// ==============================================
+function criarInimigo(){
+    if(!jogoIniciado || level >= 8) return;
+    
+    let velocidade = 1.2 + (level * 0.3); 
+    let tamanho = 40;
+    
+    if(level >= 4) tamanho = 50;
+    if(level >= 6) velocidade += 0.5;
+
+    inimigos.push({
+        x: canvas.width,
+        y: Math.random() * (canvas.height - tamanho),
+        largura: tamanho,
+        altura: tamanho,
+        velocidade: velocidade,
+        tipo: Math.random() > 0.7 ? "rapido" : "normal",
+        comportamento: "reto"
+    });
+}
+setInterval(criarInimigo, 1800);
+
+function desenharInimigos(){
+    ctx.fillStyle = "red";
+    inimigos.forEach((inimigo, indI) => {
+        inimigo.x -= inimigo.velocidade * (inimigo.tipo === "rapido" ? 1.2 : 1);
+        desenharInimigo(inimigo);
+
+        tiros.forEach((tiro, indT) => {
+            if(verificarColisao(tiro, inimigo)){
+                explosoes.push({x:inimigo.x+20, y:inimigo.y+20, tamanho:40, tempo:30, cor:"orange"});
+                inimigos.splice(indI,1);
+                tiros.splice(indT,1);
+                pontos += inimigo.tipo === "rapido" ? 2 : 1;
+                atualizarNiveis();
+            }
+        });
+
+        if(verificarColisao(aviao, inimigo)){
+            inimigos.splice(indI,1);
+            vida--;
+            explosoes.push({x:aviao.x, y:aviao.y, tamanho:60, tempo:40, cor:"red"});
+            atualizarTexto();
+            if(vida <= 0) fimDeJogo(); 
+        }
+
+        if(inimigo.x < -inimigo.largura){
+            vida--;
+            atualizarTexto();
+            if(vida <= 0) fimDeJogo();
+        }
+    });
+}
+
+// ==============================================
+// BOSS FINAL (ATUALIZADO: ATIRA E PERDE VIDA)
+// ==============================================
+function desenharBoss(){
+    if(level >= 8 && boss === null){
+        boss = {
+            x:canvas.width - 280, 
+            y:150,
+            largura:200, 
+            altura:200,
+            velocidade:1.5,
+            direcao:1
+        };
+        bossVida = 20; // Vida inicial do chefão
+    }
+    if(!boss) return;
+
+    // Movimento
+    boss.y += boss.velocidade * boss.direcao;
+    if(boss.y <= 50 || boss.y >= canvas.height - boss.altura - 50) boss.direcao *= -1;
+
+    // Sistema de tiros do chefão
+    tempoTiroBoss++;
+    if(tempoTiroBoss >= 60){ // Atira a cada 1 segundo (60 quadros)
+        tempoTiroBoss = 0;
+        tirosBoss.push({
+            x: boss.x,
+            y: boss.y + boss.altura/2,
+            largura: 25,
+            altura: 10
+        });
+    }
+
+    // Desenho do Boss
+    ctx.fillStyle = "#7f1d1d";
+    ctx.fillRect(boss.x, boss.y, boss.largura, boss.altura);
+    ctx.fillStyle = "#b91c1c";
+    ctx.fillRect(boss.x + 20, boss.y + 30, 160, 140);
+    
+    ctx.fillStyle = "white";
+    ctx.fillRect(boss.x + 40, boss.y + 60, 30, 30);
+    ctx.fillRect(boss.x + 130, boss.y + 60, 30, 30);
+    ctx.fillStyle = "black";
+    ctx.fillRect(boss.x + 60, boss.y + 120, 80, 25);
+
+    // Barra de Vida
+    ctx.fillStyle = "#333";
+    ctx.fillRect(canvas.width - 300, 20, 250, 20);
+    ctx.fillStyle = "red";
+    ctx.fillRect(canvas.width - 300, 20, (bossVida/20)*250, 20);
+    ctx.fillStyle = "white";
+    ctx.font = "bold 20px Arial";
+    ctx.fillText("CHEFE FINAL", canvas.width - 260, 18);
+
+    // Detecção de acerto e dano ao chefão
+    tiros.forEach((tiro, indT) => {
+        if(verificarColisao(tiro, boss)){
+            tiros.splice(indT, 1);
+            // Dano maior para tiro especial
+            bossVida -= tiro.especial ? 3 : 1;
+            explosoes.push({x:tiro.x, y:tiro.y, tamanho:30, tempo:25, cor:"red"});
+            
+            // Se a vida chegar a 0, ele morre
+            if(bossVida <= 0){
+                explosoes.push({x:boss.x+100, y:boss.y+100, tamanho:150, tempo:60, cor:"gold"});
+                boss = null;
+                pontos += 1000;
+                atualizarTexto();
+                // Mostra mensagem de vitória nova
+                setTimeout(() => { 
+                    jogoIniciado = false;
+                    document.getElementById("vitoria").style.display = "flex"; 
+                }, 1200);
+            }
+        }
+    });
+}
+
+// ==============================================
+// SISTEMA AUXILIAR
+// ==============================================
+function verificarColisao(a,b){
+    return a.x < b.x + b.largura &&
+           a.x + a.largura > b.x &&
+           a.y < b.y + b.altura &&
+           a.y + a.altura > b.y;
+}
+
+function atualizarNiveis(){
+    if(pontos >= 5) level = 2;
+    if(pontos >= 12) level = 3;
+    if(pontos >= 25) level = 4;
+    if(pontos >= 40) level = 5;
+    if(pontos >= 60) level = 6;
+    if(pontos >= 85) level = 7;
+    if(pontos >= 120) level = 8;
+    atualizarTexto();
+}
+
+function fimDeJogo(){
+    jogoIniciado = false;
+    document.getElementById("gameOver").style.display = "flex";
+}
+
+function moverAviao(){
+    if(teclas["ArrowUp"] && aviao.y > 0) aviao.y -= aviao.velocidade;
+    if(teclas["ArrowDown"] && aviao.y < canvas.height - aviao.altura) aviao.y += aviao.velocidade;
+    if(teclas["ArrowLeft"] && aviao.x > 0) aviao.x -= aviao.velocidade;
+    if(teclas["ArrowRight"] && aviao.x < canvas.width - aviao.largura) aviao.x += aviao.velocidade;
+}
+
+// ==============================================
+// LOOP PRINCIPAL
+// ==============================================
+function atualizar(){
+    desenharCeu();
+    desenharEstrelas();
+    desenharNuvens();
+    
+    if(jogoIniciado){
+        moverAviao();
+        desenharAviao();
+        desenharTiros();
+        desenharInimigos();
+        desenharBoss();
+        desenharExplosoes();
+    }
+
+    requestAnimationFrame(atualizar);
+}
+
+atualizar();
+
+window.addEventListener("resize",()=>{
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
+</script>
+
+</body>
+</html>

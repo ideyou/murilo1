@@ -1,0 +1,12 @@
+{
+  "color": "#000",
+  "background_color": "#317dcd",
+  "icons": [
+    {
+      "src": "profile.png",
+      "sizes": "any",
+      "type": "image/png"
+    }
+  ],
+  "name": "Murilo Augusto"
+}
